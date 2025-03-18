@@ -1,0 +1,21 @@
+# Dependency directories
+node_modules
+.yarn
+
+# Build outputs
+dist
+build
+
+# Logs
+logs
+*.log
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# IDE specific files
+.idea
+.vscode
+*.swp
+*.swo 
