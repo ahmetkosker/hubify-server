@@ -1,27 +1,20 @@
 {
-  "packageManager": "yarn@4.0.2",
-  "type": "module",
+  "name": "hubify-server",
+  "version": "1.0.0",
+  "description": "UDP chat server for Hubify",
+  "main": "dist/index.js",
   "scripts": {
-    "dev": "node --loader ts-node/esm src/index.ts",
-    "lint": "eslint . ",
-    "format": "prettier --write \"src/**/*.{js,ts,json}\"",
-    "format:check": "prettier --check \"src/**/*.{js,ts,json}\""
+    "start": "ts-node src/index.ts",
+    "build": "tsc",
+    "dev": "ts-node-dev --respawn src/index.ts"
+  },
+  "dependencies": {
+    "dgram": "^1.0.1"
   },
   "devDependencies": {
-    "@eslint/js": "^9.22.0",
-    "@types/node": "^22.13.10",
-    "@typescript-eslint/eslint-plugin": "^8.26.1",
-    "@typescript-eslint/parser": "^8.26.1",
-    "eslint": "^9.22.0",
-    "eslint-config-prettier": "^10.1.1",
-    "eslint-plugin-import": "^2.31.0",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-prettier": "^5.2.3",
-    "globals": "^16.0.0",
-    "nodemon": "^3.1.9",
-    "prettier": "3.5.3",
+    "@types/node": "^20.11.19",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.2",
-    "typescript-eslint": "^8.26.1"
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.3"
   }
 }

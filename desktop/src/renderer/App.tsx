@@ -1,14 +1,28 @@
 import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
+import { useState } from 'react';
 import icon from '../../assets/icon.svg';
 import './App.css';
 
 function Hello() {
+  const [sender, setSender] = useState<string>('');
+
   return (
     <div>
+      <input
+        type="text"
+        value={sender}
+        onChange={(e) => setSender(e.target.value)}
+      />
+      <button
+        type="button"
+        onClick={() => window.electron.ipcRenderer.greet(sender)}
+      >
+        Greet
+      </button>
       <div className="Hello">
         <img width="200" alt="icon" src={icon} />
       </div>
-      <h1>electron-react-boilerplate</h1>
+      <h1>electron-react-asdasd</h1>
       <div className="Hello">
         <a
           href="https://electron-react-boilerplate.js.org/"
