@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "description": "UDP chat server for Hubify",
   "main": "dist/index.js",
+  "type": "module",
   "scripts": {
-    "start": "ts-node src/index.ts",
+    "start": "node --loader ts-node/esm src/index.ts",
     "build": "tsc",
-    "dev": "ts-node-dev --respawn src/index.ts"
+    "dev": "ts-node-dev --esm --respawn src/index.ts"
   },
   "dependencies": {
     "dgram": "^1.0.1"

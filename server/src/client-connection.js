@@ -1,38 +1,40 @@
-import dgram from 'dgram';
+import net from 'net';
+import { Buffer } from 'buffer';
 import readline from 'readline';
 
-const client = dgram.createSocket('udp4');
-
 const rl = readline.createInterface({
-  input: globalThis.process.stdin,
-  output: globalThis.process.stdout,
+  input: process.stdin,
+  output: process.stdout,
 });
 
-const cli = () => {
-  rl.question('Your message:  ', answer => {
-    if (answer === 'exit') {
-      client.close();
-      rl.close();
-    } else {
-      client.send(answer);
-      setTimeout(() => {
-        cli();
-      }, 0);
-    }
+const question = () => {
+  rl.question('Enter a message: ', message => {
+    const buffer = Buffer.alloc(5 + message.length);
+    buffer.writeInt8(0, 0);
+    buffer.writeUInt32LE(message.length, 1);
+    buffer.write(message, 5);
+    client.write(buffer);
+    console.log('Sent message:', buffer);
+    question();
   });
 };
 
-client.on('message', msg => {
-  console.log(`${msg.toString()}`);
+const client = net.connect(3002, () => {
+  console.log('Connected to server');
+
+  question();
 });
 
-client.on('error', () => {
-  client.close();
+client.on('data', data => {
+  console.log('Received from server:', data.toString());
 });
 
-client.connect(3002, '127.0.0.1', () => {
-  client.send('connected');
-  cli();
+client.on('end', () => {
+  console.log('Disconnected from server');
+});
+
+client.on('error', err => {
+  console.error('Connection error:', err);
 });
 
 export default client;
