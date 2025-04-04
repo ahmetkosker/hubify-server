@@ -4,47 +4,39 @@ type Params = {
   data: Buffer;
 };
 
-enum MODE {
+enum Mode {
   WAIT_SIZE = 'wait_size',
   COLLECT_DATA = 'collect_data',
 }
 
 const streamDataConverter = (onPackage: (data: Buffer) => void) => {
   let bucket = Buffer.alloc(0);
-  let mode: MODE = MODE.WAIT_SIZE;
+  let mode: Mode = Mode.WAIT_SIZE;
   let totalSize = 0;
-  let collectedData = Buffer.alloc(0);
-  let index = 0;
 
-  const dataDivider = (data: Buffer) => {
+  const pushData = (data: Buffer) => {
     bucket = Buffer.concat([bucket, data]);
 
     const processChunk = () => {
       switch (mode) {
-        case MODE.WAIT_SIZE:
+        case Mode.WAIT_SIZE:
           if (bucket.length >= 4) {
             totalSize = bucket.readUInt32BE(0);
             bucket = bucket.subarray(4);
-            mode = MODE.COLLECT_DATA;
+            mode = Mode.COLLECT_DATA;
             processChunk();
           }
           break;
 
-        case MODE.COLLECT_DATA:
-          if (bucket.length > 0) {
-            index++;
-            collectedData = Buffer.concat([collectedData, bucket]);
-            console.log(
-              `${collectedData.length} / ${totalSize} (${(
-                (collectedData.length / totalSize) *
-                100
-              ).toFixed(2)}%)`
-            );
-            bucket = Buffer.alloc(0);
-          }
-          if (collectedData.length === totalSize) {
-            console.log(index, ' steps');
-            reset();
+        case Mode.COLLECT_DATA:
+          if (bucket.length >= totalSize) {
+            onPackage(bucket.subarray(0, totalSize));
+            bucket = bucket.subarray(totalSize);
+
+            mode = Mode.WAIT_SIZE;
+            totalSize = 0;
+
+            processChunk();
           }
 
           break;
@@ -57,16 +49,7 @@ const streamDataConverter = (onPackage: (data: Buffer) => void) => {
     processChunk();
   };
 
-  function reset() {
-    console.log('Resetting...');
-    bucket = Buffer.alloc(0);
-    mode = MODE.WAIT_SIZE;
-    totalSize = 0;
-    collectedData = Buffer.alloc(0);
-    index = 0;
-  }
-
-  return { dataDivider };
+  return { pushData };
 };
 
 export default streamDataConverter;

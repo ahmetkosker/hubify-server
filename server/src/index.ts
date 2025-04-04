@@ -9,12 +9,12 @@ function collector(data: Buffer) {
   console.log('Processed data:', data.toString());
 }
 
-const { dataDivider } = streamDataConverter(collector);
+const { pushData } = streamDataConverter(collector);
 
 const transformer = new Transform({
-  highWaterMark:10,
+  highWaterMark: 10,
   transform(chunk, _, callback) {
-    dataDivider(chunk);
+    pushData(chunk);
     callback(null);
   },
 });
