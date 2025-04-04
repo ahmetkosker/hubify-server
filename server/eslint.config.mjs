@@ -18,14 +18,12 @@ export default [
       prettier: prettierPlugin,
     },
     rules: {
-      'prettier/prettier': 'error',
       'no-console': 'warn',
       'no-unused-vars': 'error',
       'prefer-const': 'error',
       'no-var': 'error',
       eqeqeq: ['error', 'always'],
       'no-multiple-empty-lines': ['error', { max: 1 }],
-      'node/no-missing-import': 'error',
       'import/order': [
         'error',
         {
@@ -33,7 +31,6 @@ export default [
           'newlines-between': 'always',
         },
       ],
-      'import/no-unresolved': 'error',
       'import/named': 'error',
     },
   },
