@@ -22,9 +22,9 @@ const streamDataConverter = (onPackage: (data: Buffer) => void) => {
     const processChunk = () => {
       switch (mode) {
         case MODE.WAIT_SIZE:
-          if (bucket.length >= 1) {
-            totalSize = bucket[0];
-            bucket = bucket.subarray(1);
+          if (bucket.length >= 4) {
+            totalSize = bucket.readUInt32BE(0);
+            bucket = bucket.subarray(4);
             mode = MODE.COLLECT_DATA;
             processChunk();
           }
@@ -32,18 +32,18 @@ const streamDataConverter = (onPackage: (data: Buffer) => void) => {
 
         case MODE.COLLECT_DATA:
           if (bucket.length > 0) {
-            console.log(bucket)
             index++;
             collectedData = Buffer.concat([collectedData, bucket]);
-            // console.log(
-            //   `Received chunk ${index}: "${bucket}" - Progress: ${
-            //     collectedData.length
-            //   }/${totalSize}`
-            // );
+            console.log(
+              `${collectedData.length} / ${totalSize} (${(
+                (collectedData.length / totalSize) *
+                100
+              ).toFixed(2)}%)`
+            );
             bucket = Buffer.alloc(0);
           }
           if (collectedData.length === totalSize) {
-            onPackage(collectedData);
+            console.log(index, ' steps');
             reset();
           }
 
@@ -58,7 +58,7 @@ const streamDataConverter = (onPackage: (data: Buffer) => void) => {
   };
 
   function reset() {
-    console.log("Resetting...")
+    console.log('Resetting...');
     bucket = Buffer.alloc(0);
     mode = MODE.WAIT_SIZE;
     totalSize = 0;

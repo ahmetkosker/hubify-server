@@ -12,6 +12,7 @@ function collector(data: Buffer) {
 const { dataDivider } = streamDataConverter(collector);
 
 const transformer = new Transform({
+  highWaterMark:10,
   transform(chunk, _, callback) {
     dataDivider(chunk);
     callback(null);
