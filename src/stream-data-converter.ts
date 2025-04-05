@@ -1,9 +1,5 @@
 import { Buffer } from 'node:buffer';
 
-type Params = {
-  data: Buffer;
-};
-
 enum Mode {
   WAIT_SIZE = 'wait_size',
   COLLECT_DATA = 'collect_data',
@@ -30,7 +26,7 @@ const streamDataConverter = (onPackage: (data: Buffer) => void) => {
 
         case Mode.COLLECT_DATA:
           if (bucket.length >= totalSize) {
-            console.log("paket geldi", totalSize)
+            console.log('package received', totalSize);
             bucket = bucket.subarray(totalSize);
 
             mode = Mode.WAIT_SIZE;
