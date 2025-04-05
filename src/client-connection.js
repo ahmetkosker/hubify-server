@@ -1,70 +1,29 @@
 import net from 'net';
-import readline from 'readline';
-import process from 'process';
-import { Buffer } from 'buffer';
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
 
-function calculateTotalSize(messages) {
-  return messages.reduce((total, msg) => total + Buffer.from(msg).length, 0);
-}
+const client = net.connect({ port: 3002, host: '13.60.172.90' }, () => {
+  console.log('Connected to server');
 
-function createPacket(data, isFirst = false, totalSize = 0) {
-  if (isFirst) {
-    const firstChunk = Buffer.alloc(1 + data.length);
-    firstChunk[0] = totalSize; 
-    Buffer.from(data).copy(firstChunk, 1);
-    return firstChunk;
-  } else {
-    return Buffer.from(data);
-  }
-}
+  const payload = Buffer.from('X'.repeat(1024 * 1024));
+  const header = Buffer.alloc(4);
+  header.writeUInt32BE(payload.length, 0);
 
-const question = socket => {
-  rl.question('Enter a message: ', message => {
-    const packet = createPacket(message);
-    socket.write(packet);
-    console.log(`Sent: "${message}" (${message.length} bytes)`);
-    question(socket);
-  });
-};
+  const packet = Buffer.concat([header, payload]);
+  console.log(`Sending packet: ${packet.length} bytes`);
 
-const client = net.connect(3002, () => {
-  console.log('🔌 Connected to server');
-  
-  const messages = ['Hello ', 'World ', 'Testing ', 'Protocol'];
-  const totalSize = calculateTotalSize(messages);
-  console.log('📊 Total size of all messages:', totalSize);
-  
-  messages.forEach((message, index) => {
-    setTimeout(() => {
-      const isFirst = index === 0;
-      const packet = createPacket(message, isFirst, totalSize);
-      client.write(packet);
-      
-      if (isFirst) {
-        console.log(`📤 Sent first chunk with total size ${totalSize} and data: "${message}"`);
-      } else {
-        console.log(`📤 Sent chunk ${index + 1}: "${message}"`);
-      }
-    }, 1000 * index);
-  });
-  
+  setInterval(() => {
+    client.write(packet);
+  }, 10)
 });
 
 client.on('data', data => {
-  console.log('📥 Received:', data.toString());
+  console.log('Response from server:', data.toString());
 });
 
 client.on('end', () => {
-  console.log('🔌 Disconnected from server');
+  console.log('Disconnected from server');
 });
 
 client.on('error', err => {
-  console.error('❌ Connection error:', err);
+  console.error('Connection error:', err);
 });
-
-export default client;
