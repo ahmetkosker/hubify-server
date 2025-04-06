@@ -29,13 +29,36 @@ let users: {
   connectedDate: Date;
   ip: string;
   name: string;
+  stream?: net.Socket;
 }[] = [];
 
-function collector(data: Buffer) {
-  console.log('Processed data:', data.toString());
+function collector(data: Buffer, socketId: string) {
+  const message = data.toString();
+  const user = users.find((u) => u.socketId === socketId);
+  const userName = user ? user.name : 'Unknown User';
+
+  if (message === '/users') {
+    listConnectedUsers();
+    return;
+  }
+
+  broadcastMessage(`${userName}: ${message}`, socketId);
 }
 
-const { pushData } = streamDataConverter(collector);
+function broadcastMessage(message: string, socketId: string) {
+  const user = users.find((u) => u.socketId === socketId);
+
+  users.map((u) => {
+    if (u.socketId !== socketId) {
+      u.stream?.write(message);
+    }
+  });
+}
+
+function listConnectedUsers() {
+  const userList = users.map((u) => u.name).join('\n');
+  broadcastMessage(`Connected users:\n${userList}`, 'server');
+}
 
 server.on('connection', (stream) => {
   const socketId = randomUUID();
@@ -45,7 +68,6 @@ server.on('connection', (stream) => {
   const authLayer = new Transform({
     transform(chunk, _, callback) {
       if (isAuthenticated) {
-        console.log('from', users.find((user) => user.clientId === idBuffer.toString('hex'))?.name);
         this.push(chunk);
         callback();
       } else {
@@ -55,15 +77,18 @@ server.on('connection', (stream) => {
           const leftData = idBuffer.subarray(4);
 
           const socketInfo = stream.address() as net.AddressInfo;
+          const userName = NAMES[Math.floor(Math.random() * NAMES.length)];
           users.push({
             clientId: idBuffer.toString('hex'),
             socketId: socketId,
             connectedDate: new Date(),
             ip: socketInfo.address,
-            name: NAMES[Math.floor(Math.random() * NAMES.length)],
+            name: userName,
+            stream: stream,
           });
 
-          console.log('data is too much');
+          console.log(`${userName} connected from ${socketInfo.address}`);
+          broadcastMessage(`${userName} connected`, socketId);
 
           this.push(leftData);
           callback();
@@ -71,6 +96,8 @@ server.on('connection', (stream) => {
       }
     },
   });
+
+  const { pushData } = streamDataConverter((data: Buffer) => collector(data, socketId));
 
   const transformer = new Transform({
     highWaterMark: 10,

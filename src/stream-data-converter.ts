@@ -27,8 +27,10 @@ const streamDataConverter = (onPackage: (data: Buffer) => void) => {
         case Mode.COLLECT_DATA:
           if (bucket.length >= totalSize) {
             console.log('package received', totalSize);
+            const messageData = bucket.subarray(0, totalSize);
             bucket = bucket.subarray(totalSize);
-
+            
+            onPackage(messageData);
             mode = Mode.WAIT_SIZE;
             totalSize = 0;
 
