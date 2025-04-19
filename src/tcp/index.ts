@@ -3,6 +3,8 @@ import Stream, { Transform, Writable } from 'node:stream';
 
 import streamDataConverter from './stream-data-converter.js';
 import { randomUUID } from 'node:crypto';
+import { bindUdpHandlers } from '../udp/bind-udp-handlers.js';
+import { Socket } from 'node:dgram';
 
 const NAMES = [
   'John',
@@ -32,6 +34,8 @@ let users: {
   stream?: net.Socket;
 }[] = [];
 
+let udpServer: Socket;
+
 function collector(data: Buffer, socketId: string) {
   const message = data.toString();
   const user = users.find((u) => u.socketId === socketId);
@@ -42,15 +46,28 @@ function collector(data: Buffer, socketId: string) {
     return;
   }
 
+  if (message === 'connect') {
+    udpServer = bindUdpHandlers({
+      host: 'localhost',
+      port: 3003,
+    });
+  }
+
+  if (message.includes('udp')) {
+    udpServer?.send(Buffer.from(message), 3004, 'localhost');
+  }
+
   broadcastMessage(`${userName}: ${message}`, socketId);
 }
 
 function broadcastMessage(message: string, socketId: string) {
-  const user = users.find((u) => u.socketId === socketId);
-
+  const length = Buffer.byteLength(message);
+  const header = Buffer.alloc(4);
+  header.writeUInt32BE(length, 0);
+  const messageWithHeader = Buffer.concat([header, Buffer.from(message)]);
   users.map((u) => {
     if (u.socketId !== socketId) {
-      u.stream?.write(message);
+      u.stream?.write(messageWithHeader);
     }
   });
 }
@@ -64,6 +81,7 @@ server.on('connection', (stream) => {
   const socketId = randomUUID();
   let isAuthenticated = false;
   let idBuffer = Buffer.alloc(0);
+  let udpServer: Socket;
 
   const authLayer = new Transform({
     transform(chunk, _, callback) {

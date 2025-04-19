@@ -26,7 +26,6 @@ rl.on('line', (input) => {
     return;
   }
 
-  // Special command handling
   if (input.toLowerCase() === '/users') {
     console.log('Requesting user list...');
     const payload = Buffer.from('/users');

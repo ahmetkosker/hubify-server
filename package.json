@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "start": "node --loader ts-node/esm src/index.ts",
+    "start": "node --loader ts-node/esm src/tcp/index.ts",
     "build": "tsc"
   },
   "dependencies": {
