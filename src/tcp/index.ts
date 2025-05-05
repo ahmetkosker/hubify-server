@@ -4,7 +4,7 @@ import Stream, { Transform, Writable } from 'node:stream';
 import streamDataConverter from './stream-data-converter.js';
 import { randomUUID } from 'node:crypto';
 import { bindUdpHandlers } from '../udp/bind-udp-handlers.js';
-import { Socket } from 'node:dgram';
+import { createSocket, Socket } from 'node:dgram';
 
 const NAMES = [
   'John',
@@ -23,6 +23,8 @@ const NAMES = [
   'Merkel',
 ];
 
+const udpServers = new Map<string, Socket>();
+
 const server = net.createServer();
 
 let users: {
@@ -34,9 +36,14 @@ let users: {
   stream?: net.Socket;
 }[] = [];
 
-let udpServer: Socket;
+function syncMessage(message: string): Buffer {
+  const messageLength = Buffer.byteLength(message);
+  const header = Buffer.alloc(4);
+  header.writeInt32BE(messageLength, 0);
+  return Buffer.concat([header, Buffer.from(message)]);
+}
 
-function collector(data: Buffer, socketId: string) {
+async function collector(data: Buffer, socketId: string) {
   const message = data.toString();
   const user = users.find((u) => u.socketId === socketId);
   const userName = user ? user.name : 'Unknown User';
@@ -46,28 +53,20 @@ function collector(data: Buffer, socketId: string) {
     return;
   }
 
-  if (message === 'connect') {
-    udpServer = bindUdpHandlers({
-      host: 'localhost',
-      port: 3003,
-    });
+  if (message.includes('connect')) {
+    const port = parseInt(message.slice('connect'.length + 1, message.length));
+    const udpServer = await bindUdpHandlers({ port, host: '0.0.0.0' });
+    udpServers.set(socketId, udpServer);
+    user?.stream?.write(syncMessage(`port ${port}`));
+  } else {
+    broadcastMessage(`${userName}: ${message}`, socketId);
   }
-
-  if (message.includes('udp')) {
-    udpServer?.send(Buffer.from(message), 3004, 'localhost');
-  }
-
-  broadcastMessage(`${userName}: ${message}`, socketId);
 }
 
 function broadcastMessage(message: string, socketId: string) {
-  const length = Buffer.byteLength(message);
-  const header = Buffer.alloc(4);
-  header.writeUInt32BE(length, 0);
-  const messageWithHeader = Buffer.concat([header, Buffer.from(message)]);
   users.map((u) => {
     if (u.socketId !== socketId) {
-      u.stream?.write(messageWithHeader);
+      u.stream?.write(syncMessage(message));
     }
   });
 }
@@ -81,7 +80,6 @@ server.on('connection', (stream) => {
   const socketId = randomUUID();
   let isAuthenticated = false;
   let idBuffer = Buffer.alloc(0);
-  let udpServer: Socket;
 
   const authLayer = new Transform({
     transform(chunk, _, callback) {
